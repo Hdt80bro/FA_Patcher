@@ -9,3 +9,5 @@ test.c
 macro.h
 define.h
 settings.ini
+
+.idea/
