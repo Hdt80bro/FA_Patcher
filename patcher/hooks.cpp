@@ -4,6 +4,8 @@
 namespace binPatcher
 {
 
+namespace fs = ::boost::filesystem
+
 Hooks::Hooks(bool hook_format, string filename)
 {
 	if(hook_format)
@@ -59,17 +61,17 @@ void Hooks::apply_Hook(string current_file, int offset, FileIO& f_out)
 
 void Hooks::parse_build(int offset, string alone_Filename)
 {
-	boost::filesystem::path p("./build");
-	boost::filesystem::directory_iterator end_itr;
+	fs::path p("./build");
+	fs::directory_iterator end_itr;
 	alone_Filename = rem_extension(alone_Filename);
 	FileIO f_out(filename_out, ios::out |ios::in |ios::binary);
 	string current_file;
-	for (boost::filesystem::directory_iterator itr(p); itr != end_itr; ++itr)
+	for (fs::directory_iterator itr(p); itr != end_itr; ++itr)
 	{
-		if (boost::filesystem::is_regular_file(itr->path()))
+		if (fs::is_regular_file(itr->path()))
 		{
 			current_file = itr->path().string();
-			if(boost::filesystem::extension(current_file).compare(".o")==0)
+			if(fs::extension(current_file).compare(".o")==0)
 			{
 				if(current_file.find(alone_Filename)!=string::npos)
 				{
@@ -84,12 +86,12 @@ void Hooks::parse_build(int offset, string alone_Filename)
 			}
 		}
 	}
-	for (boost::filesystem::directory_iterator itr(p); itr != end_itr; ++itr)
+	for (fs::directory_iterator itr(p); itr != end_itr; ++itr)
 	{
-		if (boost::filesystem::is_regular_file(itr->path()))
+		if (fs::is_regular_file(itr->path()))
 		{
 			current_file = itr->path().string();
-			if(boost::filesystem::extension(current_file).compare(".bin")==0)
+			if(fs::extension(current_file).compare(".bin")==0)
 			{
 				if(current_file.find(alone_Filename)!=string::npos)
 				{
@@ -153,8 +155,8 @@ int Hooks::compile_Hook(string current_file, string Final_Filename, string alone
 
 void Hooks::parse_hooks()
 {
-	boost::filesystem::path p("\hooks");
-	boost::filesystem::directory_iterator end_itr;
+	fs::path p("\hooks");
+	fs::directory_iterator end_itr;
 
 #ifdef DEBUG
 	cout<<"\n";
@@ -162,26 +164,19 @@ void Hooks::parse_hooks()
 	cout<<"\n";
 #endif
 
-	for (boost::filesystem::directory_iterator itr(p); itr != end_itr; ++itr)
-	{
-		if (boost::filesystem::is_regular_file(itr->path()))
-		{
-			string current_file = itr->path().string();
-			size_t pos = current_file.find("hook_");
-			if (pos!=string::npos)
-			{
-				string end = current_file.substr (pos);
-				string Final_Filename;
-				Final_Filename.append(end);
-				string alone_Filename = Final_Filename;
+	for (fs::directory_iterator itr(p); itr != end_itr; ++itr) {
+		if (fs::is_regular_file(itr->path()) && itr->path.extension() == ".cpp") {
+			string path = itr->path().string();
+
+			// Create the output object file path
+			string outPath = path;
+			outPath = rem_extension(outPath); // Strip extension
+			outPath.append(".o");
+			outPath.insert(0, "../build/");
 #ifdef DEBUG
-				cout<<style::bold<<Final_Filename<<style::reset<<endl;
+            cout<<style::bold<<outPath<<style::reset<<endl;
 #endif
-				Final_Filename = rem_extension(Final_Filename);
-				Final_Filename.append(".o");
-				Final_Filename.insert(0,"../build/");
-				compile_Hook(current_file,Final_Filename,alone_Filename);
-			}
+            compile_Hook(current_file,outPath,path);
 		}
 	}
 }
