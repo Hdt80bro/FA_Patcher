@@ -38,7 +38,16 @@ ret:
 		<<"b - remove last section from PE file \n"
 	    <<fg::reset<<endl;
 
-	cin >> reply;
+	if (argc > 1)
+	{
+		argc = 1;
+		reply = argv[1][0];
+		cout<<reply<<endl;
+	}
+	else
+	{
+		cin >> reply;
+	}
 
 	if(reply.at(0)=='0')
 	{
@@ -170,13 +179,13 @@ ret:
 			cin>>reply;
 			util.FindAndRemoveBytePattern(target_in, {"64890D00000000", "64a100000000", "64a300000000", "64892500000000"}, "CCCCCCC3");
 		}
-		
+
 		if(reply.at(0)=='b')
 		{
 			FileIO file_in(target_in, ios::in | ios::binary);
 			section.remove_last_Section(file_in._file, target_out);
 		}
-		
+
 	}
 	else
 	{
