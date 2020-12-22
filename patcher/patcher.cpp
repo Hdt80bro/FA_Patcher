@@ -138,7 +138,7 @@ bool Patcher::check_system()
 
 [[noreturn]] void debug_pause()
 {
-	cout<<"Press any key to continue..."<<endl;
+	cout<<"Press ENTER to continue..."<<endl;
 	cin.clear();
 	cin.ignore(numeric_limits<streamsize>::max(), '\n');
 	cin.get();
