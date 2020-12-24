@@ -73,7 +73,7 @@ void Hooks::parse_build(int offset, string alone_Filename)
 			current_file = itr->path().string();
 			if(fs::extension(current_file).compare(".o")==0)
 			{
-				if(current_file.find(alone_Filename)!=string::npos)
+				if(fs::basename(current_file) == alone_Filename)
 				{
 					if(!gpp_link(current_file, make+" hook_gpp_link"))
 					{
@@ -93,7 +93,7 @@ void Hooks::parse_build(int offset, string alone_Filename)
 			current_file = itr->path().string();
 			if(fs::extension(current_file).compare(".bin")==0)
 			{
-				if(current_file.find(alone_Filename)!=string::npos)
+				if(fs::basename(current_file) == alone_Filename)
 				{
 					apply_Hook(current_file, offset, f_out);
 					break;
