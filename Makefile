@@ -60,10 +60,10 @@ ifeq ($(detected_OS),Linux)
 LOCAL_LIBS += -ldl
 endif
 #-oformat -Ttext=0x006B8FB9
-#echo align_size = $(align_size)';' > Env.ld
+#echo align_size = '$(align_size);' > Env.ld
 
 align:
-	echo align_size = $(align_size)';' > Env.ld
+	echo align_size = '$(align_size);' >> Env.ld
 
 peLib:
 	$(MAKE) all -C ./pe_lib
@@ -111,19 +111,19 @@ _fast_hooks:
 	$(MAKE) fast_compile -C ./hooks
 
 ext_gpp_link:
-	$(call echo, align_data = $(align_data)';' > Env.ld)
-	$(call echo, align_rdata = $(align_rdata)';' >> Env.ld)
-	$(call echo, align_bss = $(align_bss)';' >> Env.ld)
-	$(call echo, align_idata = $(align_idata)';' >> Env.ld)
-	echo align_data = $(align_data)';' > Env.ld
-	echo align_rdata = $(align_rdata)';' >> Env.ld
-	echo align_bss = $(align_bss)';' >> Env.ld
-	echo align_idata = $(align_idata)';' >> Env.ld
+	$(call echo, align_data = '$(align_data);' > Env.ld)
+	$(call echo, align_rdata = '$(align_rdata);' >> Env.ld)
+	$(call echo, align_bss = '$(align_bss);' >> Env.ld)
+	$(call echo, align_idata = '$(align_idata);' >> Env.ld)
+	echo align_data = '$(align_data);' > Env.ld
+	echo align_rdata = '$(align_rdata);' >> Env.ld
+	echo align_bss = '$(align_bss);' >> Env.ld
+	echo align_idata = '$(align_idata);' >> Env.ld
 	ld -T ./linker/sectionLinker.ld -static -m  $(obj_type) $(PRIME_NAME) -o $(TMP_NAME)
 
 hook_gpp_link:
-	$(call echo, align_size = $(align_size)';' > Env.ld)
-	echo align_size = $(align_size)';' > Env.ld
+	$(call echo, align_size = '$(align_size);' > Env.ld)
+	echo align_size = '$(align_size);' > Env.ld
 	ld -T ./linker/hookLinker.ld -static -m  $(obj_type) $(PRIME_NAME) -o $(TMP_NAME)
 
 rip_out_binary:

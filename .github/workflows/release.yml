@@ -12,14 +12,39 @@ jobs:
     runs-on: windows-latest
     defaults:
       run:
-        shell: msys2 {0}
+        shell: bash
+    env:
+      MINGW_VERSION: 8.1.0
     steps:
       - uses: actions/checkout@v2
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: git mingw-w64-x86_64-toolchain
-      - name: CI-Build
+
+      - name: Check MinGW Version
         run: |
-            mingw32-make all
+          if ! g++ --version | grep $MINGW_VERSION; then
+            choco install mingw --version $MINGW_VERSION -y -f;
+          fi
+
+      - name: Build Patcher
+        run: mingw32-make all
+            
+      - name: Create Draft Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          release_name: v${{ github.event.inputs.version }}
+          draft: true
+          prerelease: true
+
+      - name: Upload Patcher exe
+        id: upload-exe
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: FaP.exe
+          asset_name: FaPatcher.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
