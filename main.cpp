@@ -209,8 +209,8 @@ ret:
 	cout<<"Done."<<endl;
 	if(reply.at(0)!='6')
     {
-	    goto ret;
-	}
+        goto ret;
+    }
 
 	return 0;
 }

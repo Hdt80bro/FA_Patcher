@@ -63,7 +63,7 @@ endif
 #echo align_size = '$(align_size);' > Env.ld
 
 align:
-	echo align_size = '$(align_size);' >> Env.ld
+	echo align_size = '$(align_size);' > Env.ld
 
 peLib:
 	$(MAKE) all -C ./pe_lib
