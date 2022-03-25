@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release Version'
+        required: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW32
+
+      - name: Install MinGW
+        run: |
+          pacman --noconfirm -S mingw-w64-i686-gcc
+
+      - uses: actions/checkout@v2
+
+      - name: Build Patcher
+        run: ./make.sh
+
+      - name: Create Draft Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          release_name: v${{ github.event.inputs.version }}
+          draft: true
+          prerelease: true
+
+      - name: Upload Patcher exe
+        id: upload-exe
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: FaP.exe
+          asset_name: FaP.exe
+          asset_content_type: application/vnd.microsoft.portable-executable

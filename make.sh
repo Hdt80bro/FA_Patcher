@@ -1,0 +1,1 @@
+g++ -pipe -static -s -Os main.cpp -o FaP.exe

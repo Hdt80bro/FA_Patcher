@@ -1,0 +1,7 @@
+/*
+!*/
+!.gitignore
+!make.sh
+!section.ld
+!README.md
+!*.cpp
