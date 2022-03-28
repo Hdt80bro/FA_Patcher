@@ -1,7 +1,8 @@
 /*
-!*/
+!.github/
 !.gitignore
 !make.sh
 !section.ld
 !README.md
 !*.cpp
+workflow.cpp

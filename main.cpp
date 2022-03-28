@@ -214,6 +214,10 @@ int main() {
     _wmkdir(L"build");
 
     PEFile nf(newfile);
+    if (nf.FindSect(newsect.c_str())) {
+        cout << "Section " << newsect << " already exists";
+        return 1;
+    }
     int newVOffset = 0, newFOffset = 0;
     for (int i = 0; i < nf.sects.size(); i++) {
         PESect* sect = &nf.sects[i];
