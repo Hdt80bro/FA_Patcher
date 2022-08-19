@@ -118,13 +118,13 @@ class COFFFile {
 };
 
 COFFFile::COFFFile(string filename) {
-    ifstream f(filename, ios::binary);
+    fstream f(filename, ios::binary | ios::in | ios::out);
     if (!f.is_open()) {
         cout << "Failed to open " << filename << '\n';
         return;
     }
     name = filename;
-    f.seekg(0x8);
+    f.seekg(8);
     uint32_t pos, cnt;
     f.read((char*)&pos, sizeof(pos));
     f.read((char*)&cnt, sizeof(cnt));
@@ -132,7 +132,7 @@ COFFFile::COFFFile(string filename) {
     for (int i = 0; i < cnt; i++) {
         char data[18];
         f.read(data, sizeof(data));
-        if (data[0] != *"h") {
+        if (data[0] != 'h') {
             f.seekg(sizeof(data) * data[17], ios_base::cur);
             i += data[17];
             continue;
@@ -149,6 +149,25 @@ COFFFile::COFFFile(string filename) {
             i++; continue;
         }
         sect->offset = *(uint32_t*)&data[8];
+    }
+    f.seekg(2);
+    uint16_t scnt;
+    f.read((char*)&scnt, sizeof(scnt));
+    f.seekg(20);
+    for (int i = 0; i < scnt; i++) {
+        char data[8];
+        f.read(data, sizeof(data));
+        if (data[0] != 'h') {
+            f.seekg(0x20, ios_base::cur);
+            continue;
+        }
+        COFFSect* sect = FindSect(data);
+        if (sect) {
+            f.seekp(f.tellg() + 8LL);
+            f.write((char*)&sect->size, sizeof(sect->size));
+            continue;
+        }
+        f.seekg(0x20, ios_base::cur);
     }
     f.close();
 }
@@ -232,7 +251,7 @@ int main() {
 
     #define sectVAddr to_string(nf.imgbase + newVOffset - 0x1000)
     if (system(("cd build &&\
-      g++ -pipe -c -m32 -O3 -w -fpermissive -masm=intel ../section/*.cpp &&\
+      g++ -pipe -c -m32 -Os -w -fpermissive -masm=intel -march=core2 -mfpmath=both ../section/*.cpp &&\
       ld -T ../section.ld --image-base " + sectVAddr + " -s -Map sectmap.txt *.o").c_str())) return 1;
 
     ParseMap("build/sectmap.txt", "define.h");
@@ -259,7 +278,7 @@ int main() {
         for (int i = 0; i < hf->sects.size(); i++) {
             COFFSect *sect = &hf->sects[i];
             pld << "  .h" << to_string(hi++) << " 0x" << hex << sect->offset;
-            pld << " (NOLOAD): SUBALIGN(1) {\n    " << hf->name << "("<< sect->name << ")\n  }\n";
+            pld << " : SUBALIGN(1) {\n    " << hf->name << "("<< sect->name << ")\n  }\n";
         }
     }
 
