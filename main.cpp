@@ -251,7 +251,7 @@ int main() {
 
     #define sectVAddr to_string(nf.imgbase + newVOffset - 0x1000)
     if (system(("cd build &&\
-      g++ -pipe -c -m32 -Os -w -fpermissive -masm=intel -march=core2 -mfpmath=both ../section/*.cpp &&\
+      g++ -pipe -c -m32 -O3 -w -fpermissive -masm=intel -march=core2 -mfpmath=both ../section/*.cpp &&\
       ld -T ../section.ld --image-base " + sectVAddr + " -s -Map sectmap.txt *.o").c_str())) return 1;
 
     ParseMap("build/sectmap.txt", "define.h");
