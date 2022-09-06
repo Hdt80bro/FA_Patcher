@@ -249,9 +249,18 @@ int main() {
     newVOffset = align(newVOffset, nf.sectalign);
     newFOffset = align(newFOffset, nf.filealign);
 
+    ofstream smain("section.cpp");
+    _finddata_t fdata;
+    int hf = _findfirst("./section/*.cpp", &fdata);
+    do {
+        smain << "#include \"section/" << fdata.name << "\"\n";
+    } while (_findnext(hf, &fdata) != -1);
+    _findclose(hf);
+    smain.close();
+
     #define sectVAddr to_string(nf.imgbase + newVOffset - 0x1000)
     if (system(("cd build &&\
-      g++ -pipe -c -m32 -O3 -w -fpermissive -masm=intel -march=core2 -mfpmath=both ../section/*.cpp &&\
+      g++ -pipe -c -m32 -O3 -w -fpermissive -masm=intel -march=core2 -mfpmath=both ../section.cpp &&\
       ld -T ../section.ld --image-base " + sectVAddr + " -s -Map sectmap.txt *.o").c_str())) return 1;
 
     ParseMap("build/sectmap.txt", "define.h");
@@ -265,11 +274,10 @@ int main() {
     pld << "OUTPUT_FORMAT(pei-i386)\n" << "OUTPUT(build/patch.pe)\n" << "SECTIONS {\n";
 
     vector<COFFFile> hooks;
-    struct _finddata_t data;
-    int hf = _findfirst("./build/*.o", &data);
+    hf = _findfirst("./build/*.o", &fdata);
     do {
-        hooks.push_back(COFFFile(string("build/") + data.name));
-    } while (_findnext(hf, &data) != -1);
+        hooks.push_back(COFFFile(string("build/") + fdata.name));
+    } while (_findnext(hf, &fdata) != -1);
     _findclose(hf);
 
     int hi = 0;
