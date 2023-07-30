@@ -1,5 +1,6 @@
 using namespace std;
 
+#include <cstdint>
 #include <iostream>
 #include <fstream>
 #include <sstream>
