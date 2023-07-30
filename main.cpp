@@ -31,9 +31,9 @@ void ParseMap(const char *mapfile, const char *outfile) {
     string l;
     bool need = false;
     while (getline(ifile, l)) {
-        if (starts_with(l, " .text") ||
-            starts_with(l, " .data") ||
-            starts_with(l, " .bss")) {
+        if (starts_with(l, " .text ") ||
+            starts_with(l, " .data ") ||
+            starts_with(l, " .bss ")) {
             need = true;
             continue;
         }
@@ -260,7 +260,7 @@ int main() {
 
     #define sectVAddr to_string(nf.imgbase + newVOffset - 0x1000)
     if (system(("cd build &&\
-      g++ -pipe -c -m32 -Os -w -fpermissive -masm=intel -std=c++17 -march=core2 -mfpmath=both ../section.cpp &&\
+      g++ -pipe -c -m32 -Os -fno-exceptions -w -fpermissive -masm=intel -std=c++17 -march=core2 -mfpmath=both ../section.cpp &&\
       ld -T ../section.ld --image-base " + sectVAddr + " -s -Map sectmap.txt *.o").c_str())) return 1;
 
     ParseMap("build/sectmap.txt", "define.h");
