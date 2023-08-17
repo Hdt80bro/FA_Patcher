@@ -1,6 +1,7 @@
 using namespace std;
 
 #include <cstdint>
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -180,10 +181,55 @@ COFFSect* COFFFile::FindSect(const char *name) {
     return NULL;
 }
 
+void SigApply(vector<uint8_t> &data, string sig, string patch) {
+    auto strToBytes = [](string &str, vector<uint8_t> &bytes, vector<bool> &mask) {
+        str.erase(remove(str.begin(), str.end(), ' '), str.end());
+        for (size_t i = 0; i < str.length(); i += 2) {
+            string byteStr = str.substr(i, 2);
+            if (byteStr != "??") {
+                uint8_t byte = static_cast<uint8_t>(stoi(byteStr, nullptr, 16));
+                bytes.push_back(byte);
+                mask.push_back(true);
+            } else {
+                bytes.push_back(0);
+                mask.push_back(false);
+            }
+        }
+    };
+    vector<uint8_t> sigBytes, patchBytes;
+    vector<bool> sigMask, patchMask;
+
+    strToBytes(sig, sigBytes, sigMask);
+    strToBytes(patch, patchBytes, patchMask);
+    auto sigSize = sigBytes.size();
+    auto patchSize = patchBytes.size();
+    if (sigSize < patchSize)
+        cout << "Patch must be no larger than signature";
+
+    size_t patched = 0;
+    for (size_t i = 0; i <= data.size() - sigSize; i++) {
+        bool sigFound = true;
+        for (size_t j = 0; j < sigSize; j++)
+            if (sigMask[j])
+                if (data[i + j] != sigBytes[j]) {
+                    sigFound = false;
+                    break;
+                }
+        if (!sigFound) continue;
+        for (size_t j = 0; j < patchSize; j++)
+            if (patchMask[j])
+                data[i + j] = patchBytes[j];
+        i += sigSize - 1;
+        patched++;
+    }
+    cout << "Signature: " << sig << "\tPatched: " << patched << " times" << "\n";
+}
+
 string oldfile("ForgedAlliance_base.exe");
 string newfile("ForgedAlliance_exxt.exe");
 string newsect(".exxt");
 uint32_t sectsize = 0x80000;
+bool sigpatch = true;
 
 #define align(v, a) ((v) + ((a) - 1)) & ~((a) - 1)
 
@@ -207,6 +253,9 @@ int main() {
             } else
             if (l == "sectsize") {
                 ss >> hex >> sectsize;
+            } else
+            if (l == "sigpatch") {
+                ss >> sigpatch;
             }
         }
     } else {
@@ -214,7 +263,8 @@ int main() {
         f << "oldfile " << oldfile << "\n";
         f << "newfile " << newfile << "\n";
         f << "newsect " << newsect << "\n";
-        f << "sectsize 0x" << hex << sectsize;
+        f << "sectsize 0x" << hex << sectsize << "\n";
+        f << "sigpatch " << sigpatch;
     }
 
     ifstream src(oldfile, ios::binary);
@@ -343,8 +393,25 @@ int main() {
     nf.write(buf, sect->FSize);
     free(buf);
     nf.Save();
-    nf.close();
     pf.close();
+
+    nf.seekp(0, ios_base::end);
+    auto size = nf.tellg();
+    vector<uint8_t> data;
+    data.resize(size);
+    nf.seekp(0);
+    nf.read((char*)data.data(), size);
+    ifstream sfile("SigPatches.txt");
+    string s, p;
+    while (true) {
+        if (!getline(sfile, s)) break;
+        if (s == "" || starts_with(s, "//")) continue;
+        if (!getline(sfile, p)) break;
+        SigApply(data, s, p);
+    }
+    nf.seekp(0);
+    nf.write((char*)data.data(), size);
+    nf.close();
 
     cout << "Done";
     return 0;
