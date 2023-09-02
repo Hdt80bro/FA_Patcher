@@ -33,3 +33,12 @@ FAF's patches are contained at: https://github.com/FAForever/FA-Binary-Patches
     - `*` is hook name(max 7 chars), `**` virtual address to be placed.
   - For using symbols of `section` from asm need use macro `QU`.
     - Example: `"JMP "QU(BuildUnit)";"`
+- Signature patches
+  - Make `SigPatches.txt` file.
+  - Available line types:
+    - Empty line.
+    - Line starts with `//` - comment.
+    - Line pair, where first line is signature, second is patch.
+  - Signature and patch is hex bytes, that may be separate by space.
+  - `??` in signature or patch is skip byte.
+  - Patch may be shorten then signature. But not longer.
