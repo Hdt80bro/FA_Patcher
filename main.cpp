@@ -1,18 +1,24 @@
 using namespace std;
 
-#include <cstdint>
+#include <unordered_map>
+#include <unordered_set>
 #include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <stdio.h>
+#include <cstdint>
 #include <vector>
+#include <regex>
 #include <io.h>
+
+#define ErrLog(Str) \
+    cerr << __FUNCTION__ << ":" << __LINE__ << Str << "\n"
 
 void RemoveFiles(const char *dir, const char *mask) {
     char path[260];
     sprintf(path, "%s%s", dir, mask);
-    struct _finddata_t data;
+    _finddata_t data;
     int hf = _findfirst(path, &data);
     if (hf < 0) return;
     do {
@@ -72,7 +78,7 @@ class PEFile : public fstream {
 
 PEFile::PEFile(string filename) : fstream(filename, binary | in | out) {
     if (!is_open()) {
-        cout << "Failed to open " << filename << '\n';
+        ErrLog(" -> Failed to open " << filename);
         return;
     }
     seekp(0x3c);
@@ -122,7 +128,7 @@ class COFFFile {
 COFFFile::COFFFile(string filename) {
     fstream f(filename, ios::binary | ios::in | ios::out);
     if (!f.is_open()) {
-        cout << "Failed to open " << filename << '\n';
+        ErrLog(" -> Failed to open " << filename);
         return;
     }
     name = filename;
@@ -181,6 +187,42 @@ COFFSect* COFFFile::FindSect(const char *name) {
     return NULL;
 }
 
+void MakeLists(const char *dir, const char *mask, ofstream &ret) {
+    char path[260];
+    sprintf(path, "%s%s", dir, mask);
+    _finddata_t fdata;
+    int hf = _findfirst(path, &fdata);
+    if (hf == -1) {
+        ErrLog(" -> No files matching the pattern: " << dir);
+        return;
+    }
+    regex pattern(R"(PatcherList_([a-zA-Z][a-zA-Z0-9]*)_?([a-zA-Z_]\w*)?)");
+    unordered_map<string, unordered_set<string>> lists;
+    do {
+        sprintf(path, "%s%s", dir, fdata.name);
+        ifstream src(path);
+        if (!src.is_open()) {
+            ErrLog(" -> Failed to open " << path);
+            continue;
+        }
+        string l;
+        smatch match;
+        while (getline(src, l))
+            if (regex_search(l, match, pattern))
+                if (match[2] == "")
+                    lists[match[1]]; else
+                    lists[match[1]].insert(match[2]);
+        src.close();
+    } while (_findnext(hf, &fdata) != -1);
+    _findclose(hf);
+    for (const auto& [listName, elems] : lists) {
+        ret << "void* " << listName << "[] = {";
+        for (const auto& elem : elems)
+            ret << "&" << elem << ", ";
+        ret << "0};\n";
+    }
+}
+
 void SigApply(vector<uint8_t> &data, string sig, string patch) {
     auto strToBytes = [](string &str, vector<uint8_t> &bytes, vector<bool> &mask) {
         str.erase(remove(str.begin(), str.end(), ' '), str.end());
@@ -204,7 +246,7 @@ void SigApply(vector<uint8_t> &data, string sig, string patch) {
     auto sigSize = sigBytes.size();
     auto patchSize = patchBytes.size();
     if (sigSize < patchSize)
-        cout << "Patch must be no larger than signature";
+        ErrLog(" -> Patch must be no larger than signature");
 
     size_t patched = 0;
     for (size_t i = 0; i <= data.size() - sigSize; i++) {
@@ -229,7 +271,6 @@ string oldfile("ForgedAlliance_base.exe");
 string newfile("ForgedAlliance_exxt.exe");
 string newsect(".exxt");
 uint32_t sectsize = 0x80000;
-bool sigpatch = true;
 
 #define align(v, a) ((v) + ((a) - 1)) & ~((a) - 1)
 
@@ -253,9 +294,6 @@ int main() {
             } else
             if (l == "sectsize") {
                 ss >> hex >> sectsize;
-            } else
-            if (l == "sigpatch") {
-                ss >> sigpatch;
             }
         }
     } else {
@@ -263,18 +301,17 @@ int main() {
         f << "oldfile " << oldfile << "\n";
         f << "newfile " << newfile << "\n";
         f << "newsect " << newsect << "\n";
-        f << "sectsize 0x" << hex << sectsize << "\n";
-        f << "sigpatch " << sigpatch;
+        f << "sectsize 0x" << hex << sectsize;
     }
 
     ifstream src(oldfile, ios::binary);
     if (!src.is_open()) {
-        cout << "Failed to open " << oldfile;
+        ErrLog(" -> Failed to open " << oldfile);
         return 1;
     }
     ofstream dst(newfile, ios::binary);
     if (!dst.is_open()) {
-        cout << "Failed to create " << newfile;
+        ErrLog(" -> Failed to create " << newfile);
         return 1;
     }
     dst << src.rdbuf();
@@ -285,7 +322,7 @@ int main() {
 
     PEFile nf(newfile);
     if (nf.FindSect(newsect.c_str())) {
-        cout << "Section " << newsect << " already exists";
+        ErrLog(" -> Section already exists: " << newsect);
         return 1;
     }
     int newVOffset = 0, newFOffset = 0;
@@ -307,6 +344,7 @@ int main() {
         smain << "#include \"section/" << fdata.name << "\"\n";
     } while (_findnext(hf, &fdata) != -1);
     _findclose(hf);
+    MakeLists("./section/", "*.cpp", smain);
     smain.close();
 
     #define sectVAddr to_string(nf.imgbase + newVOffset - 0x1000)
@@ -380,7 +418,7 @@ int main() {
     nsect->FOffset = newFOffset;
     if (sectsize > 0) {
         if (sectsize < sect->FSize) {
-            cout << "Section size too small. Required: 0x" << hex << sect->FSize;
+            ErrLog(" -> Section size too small. Required: 0x" << hex << sect->FSize);
             return 1;
         }
         sect->VSize = sectsize;
@@ -395,22 +433,24 @@ int main() {
     nf.Save();
     pf.close();
 
-    nf.seekp(0, ios_base::end);
-    auto size = nf.tellg();
-    vector<uint8_t> data;
-    data.resize(size);
-    nf.seekp(0);
-    nf.read((char*)data.data(), size);
     ifstream sfile("SigPatches.txt");
-    string s, p;
-    while (true) {
-        if (!getline(sfile, s)) break;
-        if (s == "" || starts_with(s, "//")) continue;
-        if (!getline(sfile, p)) break;
-        SigApply(data, s, p);
+    if (sfile.is_open()) {
+        nf.seekp(0, ios_base::end);
+        auto size = nf.tellg();
+        vector<uint8_t> data;
+        data.resize(size);
+        nf.seekp(0);
+        nf.read((char*)data.data(), size);
+        string s, p;
+        while (true) {
+            if (!getline(sfile, s)) break;
+            if (s == "" || starts_with(s, "//")) continue;
+            if (!getline(sfile, p)) break;
+            SigApply(data, s, p);
+        }
+        nf.seekp(0);
+        nf.write((char*)data.data(), size);
     }
-    nf.seekp(0);
-    nf.write((char*)data.data(), size);
     nf.close();
 
     cout << "Done";
