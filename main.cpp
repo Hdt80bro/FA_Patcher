@@ -297,7 +297,7 @@ int main() {
             if (l == "sectsize")
                 ss >> hex >> sectsize; else
             if (l == "cflags")
-                ss >> cflags;
+                getline(ss, cflags);
         }
     } else {
         ofstream f("config.txt");
