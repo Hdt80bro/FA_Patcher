@@ -39,6 +39,10 @@ void ParseMap(const char *mapfile, const char *outfile) {
     string l;
     bool need = false;
     while (getline(ifile, l)) {
+        if (starts_with(l, " .text.startup ")) {
+            ofile << "#define STARTUP " << l.substr(16, 10) << "\n";
+            continue;
+        }
         if (starts_with(l, " .text ") ||
             starts_with(l, " .data ") ||
             starts_with(l, " .bss ")) {
