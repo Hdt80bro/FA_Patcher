@@ -275,6 +275,7 @@ string oldfile("ForgedAlliance_base.exe");
 string newfile("ForgedAlliance_exxt.exe");
 string newsect(".exxt");
 uint32_t sectsize = 0x80000;
+string cflags("-pipe -m32 -Os -nostartfiles -w -fpermissive -masm=intel -std=c++17 -march=core2 -mfpmath=both");
 
 #define align(v, a) ((v) + ((a) - 1)) & ~((a) - 1)
 
@@ -287,25 +288,24 @@ int main() {
         while (getline(f, l)) {
             stringstream ss(l);
             ss >> l;
-            if (l == "oldfile") {
-                ss >> oldfile;
-            } else
-            if (l == "newfile") {
-                ss >> newfile;
-            } else
-            if (l == "newsect") {
-                ss >> newsect;
-            } else
-            if (l == "sectsize") {
-                ss >> hex >> sectsize;
-            }
+            if (l == "oldfile")
+                ss >> oldfile; else
+            if (l == "newfile")
+                ss >> newfile; else
+            if (l == "newsect")
+                ss >> newsect; else
+            if (l == "sectsize")
+                ss >> hex >> sectsize; else
+            if (l == "cflags")
+                ss >> cflags;
         }
     } else {
         ofstream f("config.txt");
         f << "oldfile " << oldfile << "\n";
         f << "newfile " << newfile << "\n";
         f << "newsect " << newsect << "\n";
-        f << "sectsize 0x" << hex << sectsize;
+        f << "sectsize 0x" << hex << sectsize << "\n";
+        f << "cflags " << cflags;
     }
 
     ifstream src(oldfile, ios::binary);
@@ -352,16 +352,14 @@ int main() {
     smain.close();
 
     #define sectVAddr to_string(nf.imgbase + newVOffset - 0x1000)
-    if (system(("cd build &&\
-      g++ -pipe -m32 -Os -nostartfiles -w -fpermissive -masm=intel -std=c++17 -march=core2 -mfpmath=both\
-      -Wl,-T,../section.ld,--image-base," + sectVAddr + ",-s,-Map,sectmap.txt ../section.cpp").c_str())) return 1;
+    if (system(("cd build && g++ " + cflags + "\
+      -Wl,-T,../section.ld,--image-base,"+ sectVAddr +",-s,-Map,sectmap.txt ../section.cpp").c_str())) return 1;
 
     ParseMap("build/sectmap.txt", "define.h");
 
     RemoveFiles("./build/", "*.o");
 
-    if (system("cd build &&\
-      g++ -pipe -c -m32 -Os -w -fpermissive -masm=intel -std=c++17 ../hooks/*.cpp")) return 1;
+    if (system(("cd build && g++ -c "+ cflags +" ../hooks/*.cpp").c_str())) return 1;
 
     ofstream pld("patch.ld");
     pld << "OUTPUT_FORMAT(pei-i386)\n" << "OUTPUT(build/patch.pe)\n" << "SECTIONS {\n";
