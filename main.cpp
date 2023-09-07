@@ -12,18 +12,15 @@ using namespace std;
 #include <regex>
 #include <io.h>
 
-#define ErrLog(Str) \
-    cerr << __FUNCTION__ << ":" << __LINE__ << Str << "\n"
+#define ErrLog(str) \
+    cerr << __FUNCTION__ << ":" << __LINE__ << str << "\n"
 
-void RemoveFiles(const char *dir, const char *mask) {
-    char path[260];
-    sprintf(path, "%s%s", dir, mask);
+void RemoveFiles(const string &dir, const char *mask) {
     _finddata_t data;
-    int hf = _findfirst(path, &data);
+    int hf = _findfirst((dir + mask).c_str(), &data);
     if (hf < 0) return;
     do {
-        sprintf(path, "%s%s", dir, data.name);
-        remove(path);
+        remove((dir + data.name).c_str());
     } while (_findnext(hf, &data) != -1);
     _findclose(hf);
 }
@@ -39,10 +36,8 @@ void ParseMap(const char *mapfile, const char *outfile) {
     string l;
     bool need = false;
     while (getline(ifile, l)) {
-        if (starts_with(l, " .text.startup ")) {
-            ofile << "#define STARTUP " << l.substr(16, 10) << "\n";
-            continue;
-        }
+        if (starts_with(l, " .text.startup "))
+            ofile << "#define STARTUP " << l.substr(16, 10) << "\n"; else
         if (starts_with(l, " .text ") ||
             starts_with(l, " .data ") ||
             starts_with(l, " .bss ")) {
@@ -191,20 +186,19 @@ COFFSect* COFFFile::FindSect(const char *name) {
     return NULL;
 }
 
-void MakeLists(const char *dir, const char *mask, ofstream &ret) {
-    char path[260];
-    sprintf(path, "%s%s", dir, mask);
+void MakeLists(const string &dir, const char *mask, ofstream &ret) {
+    string path = dir + mask;
     _finddata_t fdata;
-    int hf = _findfirst(path, &fdata);
-    if (hf == -1) {
-        ErrLog(" -> No files matching the pattern: " << dir);
+    int hf = _findfirst(path.c_str(), &fdata);
+    if (hf < 0) {
+        ErrLog(" -> No files matching the pattern: " << path);
         return;
     }
     regex pattern(R"(PatcherList_([a-zA-Z][a-zA-Z0-9]*)_?([a-zA-Z_]\w*)?)");
     unordered_map<string, unordered_set<string>> lists;
     do {
-        sprintf(path, "%s%s", dir, fdata.name);
-        ifstream src(path);
+        path = dir + fdata.name;
+        ifstream src(path.c_str());
         if (!src.is_open()) {
             ErrLog(" -> Failed to open " << path);
             continue;
