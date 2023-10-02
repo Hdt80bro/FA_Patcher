@@ -4,7 +4,7 @@ A tool for patching binary files(.exe)
 FAF's patches are contained at: https://github.com/FAForever/FA-Binary-Patches
 # How To Build
 - To build patcher:
-  - Recomanded compiler: `MSYS2` with `mingw-w64-i686-gcc`
+  - Recommended compiler: `MSYS2` with `mingw-w64-i686-gcc`
   - `cd` into patcher directory and `target make` or `mingw32-make`
 
 - To build patch:
