@@ -395,6 +395,10 @@ int main() {
             cout << "No hooks in " << hf->name << '\n';
         for (int i = 0; i < hf->sects.size(); i++) {
             PESect* psect = pf.FindSect((".h" + to_string(hi)).c_str());
+            if (psect == NULL) {
+                cout << "Cannot map hook .h" << hi << " to " << " section .h" << i << "\n";
+                continue;
+            }
             if (psect->VOffset < 0) {
                 cout << "Hook invalid offset " << hf->name << " .h" << i << "\n";
                 continue;
