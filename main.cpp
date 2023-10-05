@@ -139,7 +139,7 @@ COFFFile::COFFFile(string filename) {
     for (int i = 0; i < cnt; i++) {
         char data[18];
         f.read(data, sizeof(data));
-        if (data[0] != 'h') {
+        if (data[0] != 'h' || !isdigit(data[1])) {
             f.seekg(sizeof(data) * data[17], ios_base::cur);
             i += data[17];
             continue;
