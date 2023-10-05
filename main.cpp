@@ -397,10 +397,12 @@ int main() {
             PESect* psect = pf.FindSect((".h" + to_string(hi)).c_str());
             if (psect == NULL) {
                 cout << "Cannot map hook .h" << hi << " to " << " section .h" << i << "\n";
+                hi++;
                 continue;
             }
             if (psect->VOffset < 0) {
                 cout << "Hook invalid offset " << hf->name << " .h" << i << "\n";
+                hi++;
                 continue;
             }
             uint32_t size = hf->sects[i].size;
